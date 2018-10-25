@@ -1,5 +1,5 @@
-*.sh
 *.abi
 *.wasm
 *.wast
 .vscode
+node_modules

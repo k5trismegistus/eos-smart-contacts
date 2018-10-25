@@ -59,12 +59,12 @@ class Hangman : public contract {
 
         g.usedChars.push_back(c);
 
-        _games.modify(gitr, string_to_name("hello.code"), [&]( auto& gm ) {
+        _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
             gm.usedChars = g.usedChars;
         });
 
         if (!hitted(w.content, c)) {
-            _games.modify(gitr, string_to_name("hello.code"), [&]( auto& gm ) {
+            _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
                 gm.remainingTrial = g.remainingTrial - 1;
             });
         }
@@ -74,16 +74,16 @@ class Hangman : public contract {
 
         if (clrd) {
             print("Clear!!!!");
-            _games.modify(gitr, string_to_name("hello.code"), [&]( auto& gm ) {
+            _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
                 gm.status = 1;
             });
         } else if (g.remainingTrial == 0) {
             print("Failed...");
-            _games.modify(gitr, string_to_name("hello.code"), [&]( auto& gm ) {
+            _games.modify(gitr, string_to_name("user"), [&]( auto& gm ) {
                 gm.status = 2;
             });
         } else {
-            print("Remaining ", g.remainingTrial, " times: ");
+            // print("Remaining ", g.remainingTrial, " times: ");
             print(rslt);
         }
     }
