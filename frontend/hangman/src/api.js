@@ -3,25 +3,46 @@ import { RPC_URL, CONTRACT_ACCOUNT, USER_ACCOUNT, USER_PRIVATE_KEY } from './con
 
 export const startGame = async () => {
   await takeAction('start', { name: USER_ACCOUNT })
-  return await getGame()
+  return await getCurrentGameKey()
 }
 
-export const getGame = async () => {
+export const getCurrentGameKey = async () => {
   try {
     const rpc = new Rpc.JsonRpc(RPC_URL);
     const result = await rpc.get_table_rows({
       "json": true,
       "code": CONTRACT_ACCOUNT,    // contract who owns the table
       "scope": CONTRACT_ACCOUNT,   // scope of the table
-      "table": "game",    // name of the table as specified by the contract abi
       "limit": 1,
-      "upper_bound": USER_ACCOUNT,
+      "table": "player",    // name of the table as specified by the contract abi
+      "lower_bound": USER_ACCOUNT,
     });
-    console.log(result.rows)
+    return result.rows[0].last_game_key;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export const getGame = async (gameKey) => {
+  try {
+    const rpc = new Rpc.JsonRpc(RPC_URL);
+    const result = await rpc.get_table_rows({
+      "json": true,
+      "code": CONTRACT_ACCOUNT,    // contract who owns the table
+      "scope": CONTRACT_ACCOUNT,   // scope of the table
+      "limit": 1,
+      "table": "game",    // name of the table as specified by the contract abi
+      "lower_bound": gameKey,
+    });
     return result.rows[0];
   } catch (err) {
     console.error(err);
   }
+}
+
+export const submitChar = async (gameKey, char) => {
+  await takeAction('submit', { gameid: gameKey, s: char })
+  return await getCurrentGameKey()
 }
 
 const takeAction = async (action, dataValue) => {

@@ -9,7 +9,7 @@ class Hangman : public contract {
     public:
 
     // constructor
-    Hangman(account_name s):contract(s), _words(s,s), _games(s,s)
+    Hangman(account_name s):contract(s), _words(s,s), _games(s,s), _players(s,s)
     {}
 
     //@abi action
@@ -27,6 +27,15 @@ class Hangman : public contract {
             return;
         };
 
+        auto pitr = _players.find(name);
+        if (pitr == _players.end()) {
+            pitr = _players.emplace(get_self(), [&](auto &pl)
+                {
+                    pl.name = name;
+                }
+            );
+        }
+
         uint64_t idx = seed % countwords();
 
         auto w = _words.get(idx);
@@ -43,8 +52,13 @@ class Hangman : public contract {
                 gm.status = 0;
                 gm.usedChars = initialChars;
                 gm.remainingTrial = 8;
+                gm.masked = masked(w.content, initialChars);
             }
         );
+
+        _players.modify(pitr, get_self(), [&](auto& pl) {
+            pl.last_game_key = (*g).key;
+        });
     }
 
     //@abi action
@@ -60,9 +74,12 @@ class Hangman : public contract {
         if (g.status != 0){ print("Game is already finished"); return; }
 
         g.usedChars.push_back(c);
+        auto rslt = masked(w.content, g.usedChars);
+        auto clrd = cleared(w.content, g.usedChars);
 
         _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
             gm.usedChars = g.usedChars;
+            gm.masked = rslt;
         });
 
         if (!hitted(w.content, c)) {
@@ -71,17 +88,16 @@ class Hangman : public contract {
             });
         }
 
-        auto rslt = masked(w.content, g.usedChars);
-        auto clrd = cleared(w.content, g.usedChars);
 
         if (clrd) {
             print("Clear!!!!");
             _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
                 gm.status = 1;
             });
-        } else if (g.remainingTrial == 0) {
+        // refer previous state
+        } else if (g.remainingTrial == 1) {
             print("Failed...");
-            _games.modify(gitr, string_to_name("user"), [&]( auto& gm ) {
+            _games.modify(gitr, string_to_name("code"), [&]( auto& gm ) {
                 gm.status = 2;
             });
         } else {
@@ -115,6 +131,7 @@ class Hangman : public contract {
             {
                 w.key = _words.available_primary_key();
                 w.content = newWord;
+                // w.difficulty = 0;
             }
         );
     }
@@ -123,6 +140,15 @@ class Hangman : public contract {
     void listwords()
     {
         for(auto& item : _words) { print(item.content, ","); }
+    }
+
+    //@abi action
+    void reset()
+    {
+        auto itr = _games.begin();
+        while(itr != _games.end()){
+            itr = _games.erase(itr);
+        }
     }
 
     private:
@@ -198,13 +224,24 @@ class Hangman : public contract {
         uint8_t status; // 0: playing, 1: win, 2: lose
         std::vector<char> usedChars;
         uint8_t remainingTrial;
+        std::string masked;
 
         uint64_t primary_key() const { return key; }
     };
     typedef multi_index<N(game), game> games;
 
+    // @abi table
+    struct player {
+        account_name name;
+        uint64_t last_game_key;
+
+        auto primary_key() const { return name; }
+    };
+    typedef multi_index<N(player), player> players;
+
     words _words;
     games _games;
+    players _players;
 };
 
-EOSIO_ABI(Hangman, (version)(start)(registerword)(listwords)(getgame)(submit));
+EOSIO_ABI(Hangman, (version)(start)(registerword)(listwords)(getgame)(submit)(reset));
