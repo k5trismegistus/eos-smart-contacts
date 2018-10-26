@@ -1,14 +1,14 @@
-import { Api, JsonRpc, RpcError, JsSignatureProvider } from 'eosjs';
+import { Api, Rpc, SignatureProvider } from 'eosjs';
 import { RPC_URL, CONTRACT_ACCOUNT, USER_ACCOUNT, USER_PRIVATE_KEY } from './constants';
 
 export const startGame = async () => {
-  await takeAction('start', USER_ACCOUNT)
+  await takeAction('start', { name: USER_ACCOUNT })
   return await getGame()
 }
 
 export const getGame = async () => {
   try {
-    const rpc = new JsonRpc(RPC_URL);
+    const rpc = new Rpc.JsonRpc(RPC_URL);
     const result = await rpc.get_table_rows({
       "json": true,
       "code": CONTRACT_ACCOUNT,    // contract who owns the table
@@ -26,8 +26,8 @@ export const getGame = async () => {
 
 const takeAction = async (action, dataValue) => {
   const privateKey = USER_PRIVATE_KEY;
-  const rpc = new JsonRpc(RPC_URL);
-  const signatureProvider = new JsSignatureProvider([privateKey]);
+  const rpc = new Rpc.JsonRpc(RPC_URL);
+  const signatureProvider = new SignatureProvider([privateKey]);
   const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
 
   // Main call to blockchain after setting action, account_name and data
@@ -37,7 +37,7 @@ const takeAction = async (action, dataValue) => {
         account: CONTRACT_ACCOUNT,
         name: action,
         authorization: [{
-          actor: 'user',
+          actor: USER_ACCOUNT,
           permission: 'active',
         }],
         data: dataValue,
@@ -48,6 +48,7 @@ const takeAction = async (action, dataValue) => {
     });
     return resultWithConfig;
   } catch (err) {
+    console.error(err.json)
     throw(err)
   }
 }

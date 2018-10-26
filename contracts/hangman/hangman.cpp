@@ -22,6 +22,11 @@ class Hangman : public contract {
     void start(account_name name)
     {
         uint64_t seed = _games.available_primary_key();
+
+        if (countwords() == 0) {
+            return;
+        };
+
         uint64_t idx = seed % countwords();
 
         auto w = _words.get(idx);
@@ -40,9 +45,6 @@ class Hangman : public contract {
                 gm.remainingTrial = 8;
             }
         );
-
-        print("Game ID is ", k, ": ");
-        print(masked(w.content, initialChars).c_str());
     }
 
     //@abi action
