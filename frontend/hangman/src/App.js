@@ -55,8 +55,8 @@ class Game extends Component {
               <p>
                 You have submitted: {
                   this.state.game.usedChars
-                    .sort()
                     .map((ascii) => String.fromCharCode(ascii))
+                    .join()
                 }
               </p>
             </div>
